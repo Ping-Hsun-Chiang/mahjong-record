@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>麻將紀錄</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a2e">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg-deep: #0f0f1a;
+    --bg-card: #1a1a2e;
+    --bg-card-hover: #22223a;
+    --bg-input: #16162b;
+    --border: #2a2a4a;
+    --text-primary: #e8e8f0;
+    --text-secondary: #8888aa;
+    --text-muted: #55557a;
+    --accent-green: #00e676;
+    --accent-green-dim: #00e67633;
+    --accent-red: #ff5252;
+    --accent-red-dim: #ff525233;
+    --accent-gold: #ffd740;
+    --accent-gold-dim: #ffd74022;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    min-height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 0 16px 100px;
+  }
+
+  /* ── Header ── */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: linear-gradient(to bottom, var(--bg-deep) 60%, transparent);
+    padding: 20px 0 24px;
+    text-align: center;
+  }
+  .header h1 {
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    background: linear-gradient(135deg, var(--accent-gold), #ffab40);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header .subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* ── Summary Cards ── */
+  .summary-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .stat-card .label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  .stat-card .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .stat-card .value.positive { color: var(--accent-green); }
+  .stat-card .value.negative { color: var(--accent-red); }
+  .stat-card .value.neutral { color: var(--text-secondary); }
+
+  /* ── Tabs ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--accent-gold);
+    color: #1a1a2e;
+    font-weight: 700;
+  }
+
+  /* ── Sections ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── Add Form ── */
+  .form-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color: var(--accent-gold);
+  }
+
+  .amount-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .toggle-btn {
+    flex: 1;
+    padding: 14px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-input);
+    color: var(--text-muted);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .toggle-btn.win.selected {
+    border-color: var(--accent-green);
+    background: var(--accent-green-dim);
+    color: var(--accent-green);
+  }
+  .toggle-btn.lose.selected {
+    border-color: var(--accent-red);
+    background: var(--accent-red-dim);
+    color: var(--accent-red);
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent-gold), #ffab40);
+    color: #1a1a2e;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  .submit-btn:active { transform: scale(0.97); }
+
+  /* ── Chart ── */
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .chart-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .chart-filter {
+    display: flex;
+    gap: 4px;
+  }
+  .filter-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn.active {
+    background: var(--accent-gold-dim);
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+  }
+  .chart-container {
+    position: relative;
+    height: 220px;
+  }
+
+  /* ── Records list ── */
+  .records-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .records-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  .month-group-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    padding: 8px 0 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .record-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: background 0.15s;
+  }
+  .record-item:active { background: var(--bg-card-hover); }
+  .record-date {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+  .record-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .record-amount.positive { color: var(--accent-green); }
+  .record-amount.negative { color: var(--accent-red); }
+  .record-delete {
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+  .record-delete:hover { border-color: var(--accent-red); color: var(--accent-red); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .empty-state .emoji { font-size: 2rem; margin-bottom: 8px; }
+
+  /* ── Monthly Stats Table ── */
+  .stats-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 6px;
+  }
+  .stats-table th {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: left;
+    padding: 0 10px 8px;
+  }
+  .stats-table th:last-child { text-align: right; }
+  .stats-table td {
+    background: var(--bg-card);
+    padding: 12px 10px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+  }
+  .stats-table td:first-child {
+    border-radius: 8px 0 0 8px;
+    border-right: none;
+    color: var(--text-secondary);
+  }
+  .stats-table td:nth-child(2) {
+    border-left: none;
+    border-right: none;
+    text-align: center;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+  }
+  .stats-table td:last-child {
+    border-radius: 0 8px 8px 0;
+    border-left: none;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+  }
+
+  /* ── Year selector ── */
+  .year-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .year-selector button {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .year-selector .year-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    min-width: 60px;
+    text-align: center;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent-gold);
+    color: #1a1a2e;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  /* ── Note input ── */
+  .form-group textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    resize: none;
+    height: 60px;
+    transition: border-color 0.2s;
+  }
+  .form-group textarea:focus { border-color: var(--accent-gold); }
+
+  /* ── Data Management ── */
+  .data-actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 8px;
+  }
+  .data-btn {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .data-btn:active { background: var(--bg-card-hover); }
+  .data-btn.danger { border-color: var(--accent-red-dim); color: var(--accent-red); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🀄 麻將紀錄</h1>
+</div>
+
+<!-- Summary -->
+<div class="summary-row" id="summaryRow">
+  <div class="stat-card">
+    <div class="label">本月</div>
+    <div class="value neutral" id="statMonth">$0</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">本年</div>
+    <div class="value neutral" id="statYear">$0</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">累計</div>
+    <div class="value neutral" id="statTotal">$0</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="add">新增</button>
+  <button class="tab-btn" data-tab="chart">圖表</button>
+  <button class="tab-btn" data-tab="records">紀錄</button>
+  <button class="tab-btn" data-tab="stats">統計</button>
+</div>
+
+<!-- ═══ Add Section ═══ -->
+<div class="section active" id="sec-add">
+  <div class="form-card">
+    <div class="form-group">
+      <label>日期</label>
+      <input type="date" id="inputDate">
+    </div>
+    <label style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:6px;display:block;">輸贏</label>
+    <div class="amount-toggle">
+      <button class="toggle-btn win selected" id="btnWin" onclick="setSign(1)">＋ 贏</button>
+      <button class="toggle-btn lose" id="btnLose" onclick="setSign(-1)">－ 輸</button>
+    </div>
+    <div class="form-group">
+      <label>金額</label>
+      <input type="number" id="inputAmount" placeholder="0" min="0" inputmode="numeric">
+    </div>
+    <div class="form-group">
+      <label>備註（選填）</label>
+      <textarea id="inputNote" placeholder="例：跟阿明打的"></textarea>
+    </div>
+    <button class="submit-btn" onclick="addRecord()">記錄這把</button>
+  </div>
+</div>
+
+<!-- ═══ Chart Section ═══ -->
+<div class="section" id="sec-chart">
+  <div class="year-selector">
+    <button onclick="changeChartYear(-1)">◂</button>
+    <div class="year-label" id="chartYearLabel"></div>
+    <button onclick="changeChartYear(1)">▸</button>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">累計損益走勢</div>
+      <div class="chart-filter">
+        <button class="filter-btn active" data-mode="cumulative" onclick="setChartMode('cumulative',this)">累計</button>
+        <button class="filter-btn" data-mode="monthly" onclick="setChartMode('monthly',this)">月結</button>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="mainChart"></canvas>
+    </div>
+  </div>
+  </div>
+
+<!-- ═══ Records Section ═══ -->
+<div class="section" id="sec-records">
+  <div class="year-selector">
+    <button onclick="changeRecYear(-1)">◂</button>
+    <div class="year-label" id="recYearLabel"></div>
+    <button onclick="changeRecYear(1)">▸</button>
+  </div>
+  <div id="recordsList"></div>
+</div>
+
+<!-- ═══ Stats Section ═══ -->
+<div class="section" id="sec-stats">
+  <div class="year-selector">
+    <button onclick="changeStatYear(-1)">◂</button>
+    <div class="year-label" id="statYearLabel"></div>
+    <button onclick="changeStatYear(1)">▸</button>
+  </div>
+  <div id="statsTable"></div>
+
+  <div class="data-actions">
+    <button class="data-btn" onclick="exportData()">匯出 JSON</button>
+    <button class="data-btn" onclick="document.getElementById('importFile').click()">匯入 JSON</button>
+    <button class="data-btn danger" onclick="clearAllData()">清除全部</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Data ──
+const STORAGE_KEY = 'mahjong_records';
+let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let currentSign = 1;
+let chartYear = new Date().getFullYear();
+let recYear = new Date().getFullYear();
+let statYear = new Date().getFullYear();
+let chartMode = 'cumulative';
+let mainChartInstance = null;
+
+// ── Init ──
+document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10);
+updateAll();
+
+// ── Tabs ──
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('sec-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'chart') renderCharts();
+    if (btn.dataset.tab === 'records') renderRecords();
+    if (btn.dataset.tab === 'stats') renderStats();
+  });
+});
+
+// ── Sign Toggle ──
+function setSign(s) {
+  currentSign = s;
+  document.getElementById('btnWin').classList.toggle('selected', s === 1);
+  document.getElementById('btnLose').classList.toggle('selected', s === -1);
+}
+
+// ── Add Record ──
+function addRecord() {
+  const dateVal = document.getElementById('inputDate').value;
+  const amountVal = parseInt(document.getElementById('inputAmount').value);
+  const noteVal = document.getElementById('inputNote').value.trim();
+  if (!dateVal || isNaN(amountVal) || amountVal <= 0) {
+    showToast('請填寫日期和金額');
+    return;
+  }
+  records.push({
+    id: Date.now(),
+    date: dateVal,
+    amount: currentSign * amountVal,
+    note: noteVal
+  });
+  records.sort((a, b) => a.date.localeCompare(b.date));
+  save();
+  document.getElementById('inputAmount').value = '';
+  document.getElementById('inputNote').value = '';
+  document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10);
+  setSign(1);
+  showToast(currentSign >= 0 ? '贏錢入帳 💰' : '記錄完成 📝');
+  updateAll();
+}
+
+// ── Delete ──
+function deleteRecord(id) {
+  if (!confirm('確定要刪除這筆紀錄？')) return;
+  records = records.filter(r => r.id !== id);
+  save();
+  updateAll();
+  renderRecords();
+}
+
+// ── Persistence ──
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+
+// ── Update All ──
+function updateAll() {
+  const now = new Date();
+  const thisMonth = now.toISOString().slice(0, 7);
+  const thisYear = now.getFullYear().toString();
+  const monthSum = records.filter(r => r.date.startsWith(thisMonth)).reduce((s, r) => s + r.amount, 0);
+  const yearSum = records.filter(r => r.date.startsWith(thisYear)).reduce((s, r) => s + r.amount, 0);
+  const totalSum = records.reduce((s, r) => s + r.amount, 0);
+
+  setStatValue('statMonth', monthSum);
+  setStatValue('statYear', yearSum);
+  setStatValue('statTotal', totalSum);
+}
+
+function setStatValue(id, val) {
+  const el = document.getElementById(id);
+  el.textContent = formatMoney(val);
+  el.className = 'value ' + (val > 0 ? 'positive' : val < 0 ? 'negative' : 'neutral');
+}
+
+function formatMoney(v) {
+  const prefix = v > 0 ? '+' : '';
+  return prefix + v.toLocaleString();
+}
+
+// ── Charts ──
+function changeChartYear(d) {
+  chartYear += d;
+  document.getElementById('chartYearLabel').textContent = chartYear;
+  renderCharts();
+}
+
+function setChartMode(mode, btn) {
+  chartMode = mode;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCharts();
+}
+
+function renderCharts() {
+  document.getElementById('chartYearLabel').textContent = chartYear;
+  const yearRecords = records.filter(r => r.date.startsWith(chartYear.toString()));
+
+  // ── Main chart (cumulative or monthly) ──
+  const monthlyData = Array(12).fill(0);
+  yearRecords.forEach(r => {
+    const m = parseInt(r.date.slice(5, 7)) - 1;
+    monthlyData[m] += r.amount;
+  });
+
+  let chartData;
+  if (chartMode === 'cumulative') {
+    let cum = 0;
+    chartData = monthlyData.map(v => (cum += v, cum));
+  } else {
+    chartData = [...monthlyData];
+  }
+
+  const labels = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+  if (mainChartInstance) mainChartInstance.destroy();
+
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+
+  // Determine overall color
+  const lastNonZero = [...chartData].reverse().find(v => v !== 0) || 0;
+  const isPositive = lastNonZero >= 0;
+  const lineColor = isPositive ? '#00e676' : '#ff5252';
+  gradient.addColorStop(0, isPositive ? 'rgba(0,230,118,0.25)' : 'rgba(255,82,82,0.25)');
+  gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+  mainChartInstance = new Chart(ctx, {
+    type: chartMode === 'monthly' ? 'bar' : 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: chartData,
+        borderColor: lineColor,
+        backgroundColor: chartMode === 'monthly'
+          ? chartData.map(v => v >= 0 ? 'rgba(0,230,118,0.5)' : 'rgba(255,82,82,0.5)')
+          : gradient,
+        borderWidth: 2.5,
+        fill: chartMode !== 'monthly',
+        tension: 0.3,
+        pointRadius: chartMode === 'monthly' ? 0 : 3,
+        pointBackgroundColor: lineColor,
+        borderRadius: chartMode === 'monthly' ? 6 : 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { color: '#55557a', font: { size: 10 } },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { color: '#55557a', font: { family: 'JetBrains Mono', size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        }
+      }
+    }
+  });
+  }
+
+// ── Records ──
+function changeRecYear(d) {
+  recYear += d;
+  document.getElementById('recYearLabel').textContent = recYear;
+  renderRecords();
+}
+
+function renderRecords() {
+  document.getElementById('recYearLabel').textContent = recYear;
+  const yearRecs = records.filter(r => r.date.startsWith(recYear.toString())).reverse();
+  const container = document.getElementById('recordsList');
+
+  if (yearRecs.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="emoji">🀄</div>今年還沒有紀錄</div>';
+    return;
+  }
+
+  let html = '';
+  let currentMonth = '';
+  yearRecs.forEach(r => {
+    const month = r.date.slice(0, 7);
+    if (month !== currentMonth) {
+      currentMonth = month;
+      const [y, m] = month.split('-');
+      html += `<div class="month-group-label">${y} 年 ${parseInt(m)} 月</div>`;
+    }
+    const cls = r.amount >= 0 ? 'positive' : 'negative';
+    const noteHtml = r.note ? `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:8px;">${r.note}</span>` : '';
+    html += `
+      <div class="record-item">
+        <div>
+          <span class="record-date">${r.date.slice(5)}</span>
+          ${noteHtml}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="record-amount ${cls}">${formatMoney(r.amount)}</span>
+          <button class="record-delete" onclick="deleteRecord(${r.id})">✕</button>
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+// ── Stats Table ──
+function changeStatYear(d) {
+  statYear += d;
+  document.getElementById('statYearLabel').textContent = statYear;
+  renderStats();
+}
+
+function renderStats() {
+  document.getElementById('statYearLabel').textContent = statYear;
+  const yearRecs = records.filter(r => r.date.startsWith(statYear.toString()));
+
+  const monthlyData = {};
+  const monthlyCount = {};
+  yearRecs.forEach(r => {
+    const m = parseInt(r.date.slice(5, 7));
+    monthlyData[m] = (monthlyData[m] || 0) + r.amount;
+    monthlyCount[m] = (monthlyCount[m] || 0) + 1;
+  });
+
+  const yearTotal = yearRecs.reduce((s, r) => s + r.amount, 0);
+
+  let html = `<table class="stats-table"><thead><tr><th>月份</th><th>場次</th><th>損益</th></tr></thead><tbody>`;
+  for (let m = 1; m <= 12; m++) {
+    if (!monthlyData[m] && !monthlyCount[m]) continue;
+    const val = monthlyData[m] || 0;
+    const cls = val > 0 ? 'positive' : val < 0 ? 'negative' : 'neutral';
+    html += `<tr>
+      <td>${m} 月</td>
+      <td>${monthlyCount[m] || 0} 場</td>
+      <td style="color:var(--accent-${val >= 0 ? 'green' : 'red'})">${formatMoney(val)}</td>
+    </tr>`;
+  }
+  const totalCls = yearTotal >= 0 ? 'green' : 'red';
+  html += `<tr>
+    <td style="font-weight:700;color:var(--accent-gold);">合計</td>
+    <td>${yearRecs.length} 場</td>
+    <td style="color:var(--accent-${totalCls});font-size:1rem;">${formatMoney(yearTotal)}</td>
+  </tr>`;
+  html += '</tbody></table>';
+
+  if (yearRecs.length === 0) {
+    html = '<div class="empty-state"><div class="emoji">📊</div>今年還沒有紀錄</div>';
+  }
+
+  document.getElementById('statsTable').innerHTML = html;
+}
+
+// ── Export / Import ──
+function exportData() {
+  const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mahjong_records_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('匯出成功');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data)) throw new Error();
+      records = data;
+      records.sort((a, b) => a.date.localeCompare(b.date));
+      save();
+      updateAll();
+      showToast(`匯入成功，共 ${data.length} 筆`);
+    } catch {
+      showToast('檔案格式錯誤');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function clearAllData() {
+  if (!confirm('確定要清除所有紀錄？此操作無法復原！')) return;
+  records = [];
+  save();
+  updateAll();
+  renderRecords();
+  renderStats();
+  showToast('已清除所有紀錄');
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+</script>
+</body>
+</html>
