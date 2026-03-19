@@ -611,8 +611,8 @@ function addRecord() {
   document.getElementById('inputAmount').value = '';
   document.getElementById('inputNote').value = '';
   document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10);
-  setSign(1);
-  showToast(currentSign >= 0 ? '贏錢入帳 💰' : '記錄完成 📝');
+  showToast(currentSign >= 0 ? '贏錢入帳 💰' : '下次加油 💦');
+  setSign(1);
   updateAll();
 }
 
