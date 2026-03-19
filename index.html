@@ -568,7 +568,7 @@ let chartMode = 'cumulative';
 let mainChartInstance = null;
 
 // ── Init ──
-document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10);
+document.getElementById('inputDate').value = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 updateAll();
 
 // ── Tabs ──
@@ -610,7 +610,7 @@ function addRecord() {
   save();
   document.getElementById('inputAmount').value = '';
   document.getElementById('inputNote').value = '';
-  document.getElementById('inputDate').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('inputDate').value = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   showToast(currentSign >= 0 ? '贏錢入帳 💰' : '下次加油 💦');
   setSign(1);
   updateAll();
