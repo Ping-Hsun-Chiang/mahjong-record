@@ -1,6 +1,6 @@
-# 🀄 麻將紀錄 Mahjong Record
+# 簡易麻將紀錄工具
 
-一個以 **個人麻將損益追蹤** 為核心的輕量化網頁工具，目標是讓玩家能夠快速記錄每一把的輸贏結果，並透過視覺化圖表掌握自己的長期走勢。無需安裝、無需登入，開啟即用。
+一個以 **個人麻將損益追蹤** 為核心的輕量化網頁工具，目標是讓玩家能夠快速記錄每次遊玩的輸贏結果，並透過視覺化圖表掌握自己的長期走勢。無需安裝、無需登入，開啟即用。
 
 ## Website
 - Live Site: [https://ping-hsun-chiang.github.io/mahjong-record/](https://ping-hsun-chiang.github.io/mahjong-record/)
@@ -8,7 +8,7 @@
 ## Project Overview
 本專案以單一 HTML 檔案實作完整功能，結合本地儲存與互動式圖表，打造出一個方便日常使用的麻將記帳工具。除了基本的輸贏記錄外，亦加入了資料視覺化與資料匯出功能，讓每一把的結果都有跡可循：
 
-- 快速新增每把輸贏紀錄，含日期、金額與備註
+- 快速新增每次輸贏紀錄，含日期、金額與備註
 - 自動彙整本月、本年與累計損益總覽
 - 視覺化走勢圖表，直觀呈現輸贏消長
 - 支援 JSON 匯出 / 匯入，方便備份與跨裝置使用
@@ -41,9 +41,9 @@
 - **HTML5**
 - **CSS3**
 - **JavaScript (Vanilla JS)**
-- **LocalStorage**（瀏覽器本地資料儲存）
-- **Canvas API / Chart.js**（圖表視覺化）
-- **Responsive Web Design (RWD)**
+- **LocalStorage**
+- **Canvas API / Chart.js**
+- **Responsive Web Design**
 - **GitHub Pages**
 
 ## Author
